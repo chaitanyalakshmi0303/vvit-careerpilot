@@ -1,0 +1,6 @@
+streamlit>=1.35.0
+plotly>=5.20.0
+pypdf>=4.0.0
+Pillow>=10.0.0
+requests>=2.31.0
+python-dotenv>=1.0.0
