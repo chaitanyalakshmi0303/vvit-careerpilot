@@ -224,10 +224,21 @@ DEFAULT_DSA_TRACKER = {
     "Dynamic Programming": {"status": "Learning", "solved": 7, "accuracy": "50%", "weak": "2D Grid States"},
 }
 
-def init_session_state(force_reset=False):
+DEFAULT_USER = {
+    "name": "Chaitanya lakshmi dasari",
+    "email": "chaitanya@placementprep.ai",
+    "college": "KL University",
+    "branch": "Computer Science & Engineering",
+    "grad_year": "2026",
+    "target_role": "SDE",
+    "target_company": "Amazon",
+    "auth_provider": "local_dev"
+}
+
+def init_session_state(force_reset=False, sign_out=False):
     defaults = {
-        "authenticated": False,
-        "user_profile": None,
+        "authenticated": not sign_out,
+        "user_profile": None if sign_out else dict(DEFAULT_USER),
         "auth_mode": "signin",
         "pending_email": "",
         "audit_result": None,
@@ -1820,7 +1831,7 @@ with tabs[6]:
         if st.button("🚪 Sign Out of VVIT CareerPilot", use_container_width=True, type="primary"):
             for k in list(st.session_state.keys()):
                 del st.session_state[k]
-            init_session_state(force_reset=True)
+            init_session_state(force_reset=True, sign_out=True)
             st.rerun()
 
     with p2:

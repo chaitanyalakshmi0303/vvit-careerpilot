@@ -17,10 +17,30 @@ from typing import Dict, Any, Tuple, Optional
 # Relative deployment-safe path
 DB_PATH = os.path.join(os.path.dirname(__file__), "users.db")
 
-# GitHub OAuth credentials from environment
-GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
-GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
-APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:8501").rstrip("/")
+def _get_env_or_secret(key: str, default: str = "") -> str:
+    val = os.getenv(key, "").strip()
+    if not val:
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and key in st.secrets:
+                val = str(st.secrets[key]).strip()
+        except Exception:
+            pass
+    return val or default
+
+# GitHub OAuth credentials from environment or Streamlit secrets
+def get_github_client_id() -> str:
+    return _get_env_or_secret("GITHUB_CLIENT_ID", "")
+
+def get_github_client_secret() -> str:
+    return _get_env_or_secret("GITHUB_CLIENT_SECRET", "")
+
+def get_app_base_url() -> str:
+    return _get_env_or_secret("APP_BASE_URL", "http://localhost:8501").rstrip("/")
+
+GITHUB_CLIENT_ID = get_github_client_id()
+GITHUB_CLIENT_SECRET = get_github_client_secret()
+APP_BASE_URL = get_app_base_url()
 
 def _get_db():
     conn = sqlite3.connect(DB_PATH, timeout=10)
@@ -114,12 +134,13 @@ def create_user(
 # =============================================================================
 
 def get_github_auth_url() -> Optional[str]:
-    if not GITHUB_CLIENT_ID:
+    cid = get_github_client_id()
+    if not cid:
         return None
-    redirect_uri = f"{APP_BASE_URL}/"
+    redirect_uri = f"{get_app_base_url()}/"
     state = secrets.token_hex(16)
     params = {
-        "client_id": GITHUB_CLIENT_ID,
+        "client_id": cid,
         "redirect_uri": redirect_uri,
         "scope": "read:user user:email",
         "state": state
@@ -128,15 +149,17 @@ def get_github_auth_url() -> Optional[str]:
 
 def handle_oauth_callback(code: str, state: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     """Exchanges GitHub authorization code for user profile."""
-    if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
+    cid = get_github_client_id()
+    csec = get_github_client_secret()
+    if not cid or not csec:
         return None, "GitHub client secrets not configured on host environment."
 
     token_url = "https://github.com/login/oauth/access_token"
     token_payload = {
-        "client_id": GITHUB_CLIENT_ID,
-        "client_secret": GITHUB_CLIENT_SECRET,
+        "client_id": cid,
+        "client_secret": csec,
         "code": code,
-        "redirect_uri": f"{APP_BASE_URL}/"
+        "redirect_uri": f"{get_app_base_url()}/"
     }
     headers = {"Accept": "application/json"}
 
